@@ -10,6 +10,11 @@ import "./globals.css"
 import { Suspense } from "react"
 import { QueryProvider } from "@/components/providers/query-provider"
 
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+export const fetchCache = "force-no-store"
+export const runtime = 'nodejs'
+
 const notoSansArabic = Noto_Sans_Arabic({
   subsets: ["arabic"],
   variable: "--font-arabic",

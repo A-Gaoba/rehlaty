@@ -56,7 +56,7 @@ export function LeafletMap() {
                     <img src={post.image || "/placeholder.svg"} alt={post.caption} className="w-full h-24 object-cover rounded" />
                     <p className="text-xs mt-1 line-clamp-2">{post.caption}</p>
                     <div className="mt-2 text-right">
-                      <Link href={`/posts/${post.id}`} className="text-primary text-xs underline">
+                      <Link href={`/p/${post.id}`} className="text-primary text-xs underline">
                         عرض المنشور
                       </Link>
                     </div>
