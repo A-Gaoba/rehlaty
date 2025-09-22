@@ -11,6 +11,8 @@ import type { Post } from "@/lib/types"
 import { Heart, MessageCircle, Share, Bookmark, MapPin, Star, MoreHorizontal } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { CommentsSection } from "./comments-section"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { likePost as likePostApi, unlikePost as unlikePostApi } from "@/lib/api/posts"
 
 interface PostCardProps {
   post: Post
@@ -18,11 +20,42 @@ interface PostCardProps {
 
 export function PostCard({ post }: PostCardProps) {
   const { t } = useLanguage()
-  const { likePost, savePost, currentUser } = useAppStore()
+  const { savePost, currentUser } = useAppStore()
   const [showComments, setShowComments] = useState(false)
+  const qc = useQueryClient()
+
+  const likeMutation = useMutation({
+    mutationFn: async (liked: boolean) => (liked ? unlikePostApi(post.id) : likePostApi(post.id)),
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: ["posts"] })
+      const prev = qc.getQueryData<any>(["posts"])
+      // Optimistically update cache shape for infinite query
+      qc.setQueryData<any>(["posts"], (data: any) => {
+        if (!data) return data
+        const copy = { ...data, pages: data.pages.map((p: any) => ({ ...p, items: p.items.map((it: any) => ({ ...it })) })) }
+        for (const page of copy.pages) {
+          const item = page.items.find((i: any) => i.id === post.id)
+          if (item) {
+            const wasLiked = item.isLiked
+            item.isLiked = !wasLiked
+            item.likesCount = Math.max(0, item.likesCount + (item.isLiked ? 1 : -1))
+            break
+          }
+        }
+        return copy
+      })
+      return { prev }
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) qc.setQueryData(["posts"], ctx.prev)
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["posts"] })
+    },
+  })
 
   const handleLike = () => {
-    likePost(post.id)
+    likeMutation.mutate(post.isLiked)
   }
 
   const handleSave = () => {

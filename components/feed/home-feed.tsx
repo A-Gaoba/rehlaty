@@ -1,21 +1,37 @@
 "use client"
 
 import { PostCard } from "./post-card"
-import { useAppStore } from "@/lib/store"
 import { useLanguage } from "@/components/language-provider"
 import { Button } from "@/components/ui/button"
 import { RefreshCw } from "lucide-react"
-import { useState } from "react"
+import { useState, useMemo } from "react"
+import { useInfiniteQuery } from "@tanstack/react-query"
+import { listPosts } from "@/lib/api/posts"
 
 export function HomeFeed() {
   const { t } = useLanguage()
-  const posts = useAppStore((state) => state.posts)
+  const {
+    data,
+    isLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    refetch,
+  } = useInfiniteQuery({
+    queryKey: ["posts"],
+    queryFn: async ({ pageParam }) => listPosts(pageParam as string | undefined, 10),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    staleTime: 30_000,
+  })
+
+  const posts = useMemo(() => data?.pages.flatMap((p) => p.items) ?? [], [data])
   const [isRefreshing, setIsRefreshing] = useState(false)
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setIsRefreshing(true)
-    // Simulate refresh delay
-    setTimeout(() => setIsRefreshing(false), 1000)
+    await refetch()
+    setIsRefreshing(false)
   }
 
   return (
@@ -61,13 +77,23 @@ export function HomeFeed() {
         {posts.map((post) => (
           <PostCard key={post.id} post={post} />
         ))}
+        {isLoading && <div className="text-center text-sm text-muted-foreground py-8">جاري التحميل...</div>}
       </div>
 
       {/* Load More */}
       <div className="text-center py-8">
-        <Button variant="outline" className="w-full bg-transparent">
-          تحميل المزيد من المنشورات
-        </Button>
+        {hasNextPage ? (
+          <Button
+            variant="outline"
+            className="w-full bg-transparent"
+            onClick={() => fetchNextPage()}
+            disabled={isFetchingNextPage}
+          >
+            {isFetchingNextPage ? "جاري التحميل..." : "تحميل المزيد من المنشورات"}
+          </Button>
+        ) : (
+          <div className="text-sm text-muted-foreground">لا مزيد من المنشورات</div>
+        )}
       </div>
     </div>
   )
