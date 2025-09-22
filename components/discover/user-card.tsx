@@ -7,32 +7,46 @@ import { Badge } from "@/components/ui/badge"
 import { useAppStore } from "@/lib/store"
 import type { User } from "@/lib/types"
 import { UserPlus, MessageCircle } from "lucide-react"
-import { isFollowing, hasPendingFollowRequest } from "@/lib/mock-data"
+import { useMutation } from "@tanstack/react-query"
+import { follow as followApi, unfollow as unfollowApi } from "@/lib/api/follows"
 
 interface UserCardProps {
   user: User
 }
 
 export function UserCard({ user }: UserCardProps) {
-  const { currentUser, followUser, unfollowUser } = useAppStore()
+  const { currentUser } = useAppStore()
 
   const isCurrentUser = currentUser?.id === user.id
-  const isFollowingUser = currentUser ? isFollowing(currentUser.id, user.id) : false
-  const hasPendingRequest = currentUser ? hasPendingFollowRequest(currentUser.id, user.id) : false
+  const [state, setState] = React.useState<{ isFollowing: boolean; pending: boolean; followId?: string }>(() => ({
+    isFollowing: false,
+    pending: false,
+  }))
+
+  const followMutation = useMutation({
+    mutationFn: async () => followApi(user.id),
+    onSuccess: (data) => {
+      setState({ isFollowing: data.follow.status === "accepted", pending: data.follow.status === "pending", followId: data.follow.id })
+    },
+  })
+
+  const unfollowMutation = useMutation({
+    mutationFn: async () => (state.followId ? unfollowApi(state.followId) : undefined),
+    onSuccess: () => setState({ isFollowing: false, pending: false, followId: undefined }),
+  })
 
   const handleFollowClick = () => {
     if (!currentUser) return
-
-    if (isFollowingUser) {
-      unfollowUser(user.id)
-    } else {
-      followUser(user.id)
+    if (state.isFollowing && state.followId) {
+      unfollowMutation.mutate()
+    } else if (!state.pending) {
+      followMutation.mutate()
     }
   }
 
   const getFollowButtonText = () => {
-    if (hasPendingRequest) return "طلب مرسل"
-    if (isFollowingUser) return "إلغاء المتابعة"
+    if (state.pending) return "طلب مرسل"
+    if (state.isFollowing) return "إلغاء المتابعة"
     return "متابعة"
   }
 
@@ -82,9 +96,9 @@ export function UserCard({ user }: UserCardProps) {
               <div className="flex gap-2">
                 <Button
                   size="sm"
-                  variant={isFollowingUser ? "outline" : "default"}
+                  variant={state.isFollowing ? "outline" : "default"}
                   onClick={handleFollowClick}
-                  disabled={hasPendingRequest}
+                  disabled={state.pending || followMutation.isPending || unfollowMutation.isPending}
                   className="flex-1"
                 >
                   <UserPlus className="h-4 w-4 mr-2" />

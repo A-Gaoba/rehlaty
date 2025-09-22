@@ -7,6 +7,7 @@ import { RefreshCw } from "lucide-react"
 import { useState, useMemo } from "react"
 import { useInfiniteQuery } from "@tanstack/react-query"
 import { listPosts } from "@/lib/api/posts"
+import Image from "next/image"
 
 export function HomeFeed() {
   const { t } = useLanguage()
@@ -59,9 +60,11 @@ export function HomeFeed() {
             <div key={index} className="flex flex-col items-center gap-2 min-w-fit">
               <div className="w-16 h-16 rounded-full bg-gradient-to-r from-primary to-accent p-0.5">
                 <div className="w-full h-full rounded-full bg-background p-0.5">
-                  <img
+                  <Image
                     src={city.image || "/placeholder.svg"}
                     alt={city.name}
+                    width={64}
+                    height={64}
                     className="w-full h-full rounded-full object-cover"
                   />
                 </div>

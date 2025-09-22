@@ -2,20 +2,21 @@
 
 import { Button } from "@/components/ui/button"
 import { useLanguage } from "@/components/language-provider"
-import { useAppStore } from "@/lib/store"
 import { Home, Compass, Map, Plus, User } from "lucide-react"
 import { cn } from "@/lib/utils"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
 
 export function BottomNavigation() {
   const { t } = useLanguage()
-  const { activeTab, setActiveTab } = useAppStore()
+  const pathname = usePathname()
 
   const navItems = [
-    { id: "home", icon: Home, label: t("home") },
-    { id: "discover", icon: Compass, label: t("discover") },
-    { id: "create", icon: Plus, label: t("create"), isSpecial: true },
-    { id: "map", icon: Map, label: t("map") },
-    { id: "profile", icon: User, label: t("profile") },
+    { href: "/home", icon: Home, label: t("home") },
+    { href: "/discover", icon: Compass, label: t("discover") },
+    { href: "/create", icon: Plus, label: t("create"), isSpecial: true },
+    { href: "/map", icon: Map, label: t("map") },
+    { href: "/u/me", icon: User, label: t("profile") },
   ]
 
   return (
@@ -24,23 +25,23 @@ export function BottomNavigation() {
         <div className="flex items-center justify-around h-16">
           {navItems.map((item) => {
             const Icon = item.icon
-            const isActive = activeTab === item.id
+            const isActive = pathname === item.href
 
             return (
-              <Button
-                key={item.id}
-                variant="ghost"
-                size="sm"
-                onClick={() => setActiveTab(item.id)}
-                className={cn(
-                  "flex flex-col items-center gap-1 h-auto py-2 px-3",
-                  item.isSpecial && "bg-primary text-primary-foreground hover:bg-primary/90",
-                  isActive && !item.isSpecial && "text-primary",
-                )}
-              >
-                <Icon className={cn("h-5 w-5", item.isSpecial && "h-6 w-6")} />
-                <span className="text-xs font-medium">{item.label}</span>
-              </Button>
+              <Link href={item.href} key={item.href} className="flex-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    "w-full flex flex-col items-center gap-1 h-auto py-2 px-3",
+                    item.isSpecial && "bg-primary text-primary-foreground hover:bg-primary/90",
+                    isActive && !item.isSpecial && "text-primary",
+                  )}
+                >
+                  <Icon className={cn("h-5 w-5", item.isSpecial && "h-6 w-6")} />
+                  <span className="text-xs font-medium">{item.label}</span>
+                </Button>
+              </Link>
             )
           })}
         </div>

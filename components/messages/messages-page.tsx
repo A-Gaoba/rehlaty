@@ -1,26 +1,34 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { useAppStore } from "@/lib/store"
 import { useLanguage } from "@/components/language-provider"
-import type { Conversation } from "@/lib/types"
 import { Search, Edit } from "lucide-react"
 import { ChatWindow } from "./chat-window"
 import { cn } from "@/lib/utils"
+import { useQuery } from "@tanstack/react-query"
+import { listConversations } from "@/lib/api/messages"
+import { useAppStore } from "@/lib/store"
 
 export function MessagesPage() {
   const { t } = useLanguage()
-  const { conversations, currentUser } = useAppStore()
-  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null)
+  const { currentUser } = useAppStore()
+  const { data } = useQuery({
+    queryKey: ["conversations"],
+    queryFn: async () => listConversations(),
+    refetchInterval: 15000,
+    enabled: !!currentUser,
+  })
+  const conversations = data?.items || []
+  const [selectedConversation, setSelectedConversation] = useState<any | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
 
   // Filter conversations based on search
-  const filteredConversations = conversations.filter((conversation) =>
+  const filteredConversations = conversations.filter((conversation: any) =>
     conversation.participants.some((participant) =>
       participant.displayName.toLowerCase().includes(searchQuery.toLowerCase()),
     ),
@@ -47,7 +55,7 @@ export function MessagesPage() {
     }
   }
 
-  const getOtherParticipant = (conversation: Conversation) => {
+  const getOtherParticipant = (conversation: any) => {
     return conversation.participants.find((p) => p.id !== currentUser?.id)
   }
 
@@ -88,7 +96,7 @@ export function MessagesPage() {
                 </div>
               ) : (
                 <div className="space-y-1">
-                  {filteredConversations.map((conversation) => {
+                  {filteredConversations.map((conversation: any) => {
                     const otherParticipant = getOtherParticipant(conversation)
                     if (!otherParticipant) return null
 
@@ -123,12 +131,14 @@ export function MessagesPage() {
                                 </div>
                               )}
                             </div>
-                            <span className="text-xs text-muted-foreground">
-                              {formatTime(conversation.lastMessage.createdAt)}
-                            </span>
+                            {conversation.lastMessage && (
+                              <span className="text-xs text-muted-foreground">
+                                {formatTime(conversation.lastMessage.createdAt)}
+                              </span>
+                            )}
                           </div>
                           <div className="flex items-center justify-between">
-                            <p className="text-sm text-muted-foreground truncate">{conversation.lastMessage.content}</p>
+                            <p className="text-sm text-muted-foreground truncate">{conversation.lastMessage?.content || ""}</p>
                             {conversation.unreadCount > 0 && (
                               <Badge variant="destructive" className="h-5 w-5 p-0 text-xs">
                                 {conversation.unreadCount}

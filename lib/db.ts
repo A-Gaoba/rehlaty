@@ -16,6 +16,10 @@ export async function connectToDatabase(): Promise<typeof mongoose> {
   }
 
   if (!cached.promise) {
+    if (process.env.NODE_ENV !== "production") {
+      // Print the MongoDB URI so you can verify it's set correctly in the terminal
+      console.log(`[db] MONGODB_URI=${env.MONGODB_URI}`)
+    }
     cached.promise = mongoose.connect(env.MONGODB_URI, {
       // Avoid deprecation warnings and unnecessary buffering
       bufferCommands: false,
@@ -24,6 +28,11 @@ export async function connectToDatabase(): Promise<typeof mongoose> {
   }
 
   cached.conn = await cached.promise
+  if (process.env.NODE_ENV !== "production") {
+    const host = cached.conn.connection.host
+    const name = cached.conn.connection.name
+    console.log(`[db] Connected to ${host}/${name}`)
+  }
   return cached.conn
 }
 

@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -19,7 +20,11 @@ export function AuthPage() {
   const setCurrentUser = useAppStore((state) => state.setCurrentUser)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [displayName, setDisplayName] = useState("")
   const qc = useQueryClient()
+  const router = useRouter()
+  const search = useSearchParams()
+  const nextPath = decodeURIComponent(search.get("next") || "/")
 
   const loginMutation = useMutation({
     mutationFn: (vars: { emailOrUsername: string; password: string }) => login(vars),
@@ -40,6 +45,7 @@ export function AuthPage() {
         interests: [],
       })
       await qc.invalidateQueries({ queryKey: ["me"] })
+      router.replace(nextPath)
     },
   })
 
@@ -48,6 +54,7 @@ export function AuthPage() {
     onSuccess: async () => {
       // After register, proceed to login flow for UX
       await loginMutation.mutateAsync({ emailOrUsername: email, password })
+      router.replace(nextPath)
     },
   })
 
@@ -58,9 +65,10 @@ export function AuthPage() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Derive a username from email for now; UI can be extended to ask explicitly
-    const username = email.split("@")[0]
-    await registerMutation.mutateAsync({ email, username, password, displayName: username })
+    // Derive a unique-ish username
+    const base = email.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "")
+    const username = `${base}_${Date.now().toString().slice(-4)}`
+    await registerMutation.mutateAsync({ email, username, password, displayName: displayName || base })
   }
 
   return (
@@ -125,6 +133,7 @@ export function AuthPage() {
                       placeholder={t("email")}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
+                      autoComplete="email"
                       required
                     />
                   </div>
@@ -134,6 +143,8 @@ export function AuthPage() {
                       placeholder={t("password")}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
+                      autoComplete="current-password"
+                      minLength={8}
                       required
                     />
                   </div>
@@ -151,7 +162,14 @@ export function AuthPage() {
               <TabsContent value="signup" className="space-y-4">
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <div className="space-y-2">
-                    <Input type="text" placeholder="الاسم الكامل" required />
+                    <Input
+                      type="text"
+                      placeholder="الاسم الكامل"
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      autoComplete="name"
+                      required
+                    />
                   </div>
                   <div className="space-y-2">
                     <Input
@@ -159,6 +177,7 @@ export function AuthPage() {
                       placeholder={t("email")}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
+                      autoComplete="email"
                       required
                     />
                   </div>
@@ -168,6 +187,8 @@ export function AuthPage() {
                       placeholder={t("password")}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
+                      autoComplete="new-password"
+                      minLength={8}
                       required
                     />
                   </div>

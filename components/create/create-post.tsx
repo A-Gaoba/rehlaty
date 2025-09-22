@@ -14,16 +14,18 @@ import { uploadImage } from "@/lib/api/uploads"
 import { createPost } from "@/lib/api/posts"
 import { Camera, MapPin, Star, X, Upload } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useRouter } from "next/navigation"
 
 export function CreatePost() {
   const { t } = useLanguage()
-  const { addPost, currentUser, setActiveTab } = useAppStore()
+  const { addPost, currentUser } = useAppStore()
   const [caption, setCaption] = useState("")
   const [selectedLocation, setSelectedLocation] = useState("")
   const [rating, setRating] = useState(5)
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const router = useRouter()
 
   const handleImageUpload = () => {
     const input = document.createElement("input")
@@ -70,7 +72,7 @@ export function CreatePost() {
     setIsSubmitting(false)
 
     // Navigate back to home
-    setActiveTab("home")
+    router.push('/home')
   }
 
   const extractHashtags = (text: string): string[] => {
@@ -87,7 +89,7 @@ export function CreatePost() {
               <Camera className="h-5 w-5" />
               {t("create")} منشور جديد
             </CardTitle>
-            <Button variant="ghost" size="sm" onClick={() => setActiveTab("home")}>
+            <Button variant="ghost" size="sm" onClick={() => router.push('/home')}>
               <X className="h-4 w-4" />
             </Button>
           </div>
@@ -150,11 +152,13 @@ export function CreatePost() {
 
           {/* Location */}
           <div className="space-y-3">
-            <label className="text-sm font-medium flex items-center gap-2">
+            <label htmlFor="location" className="text-sm font-medium flex items-center gap-2">
               <MapPin className="h-4 w-4" />
               الموقع
             </label>
             <select
+              id="location"
+              name="location"
               value={selectedLocation}
               onChange={(e) => setSelectedLocation(e.target.value)}
               className="w-full p-2 border border-input rounded-md bg-background"

@@ -8,11 +8,11 @@ import { useAppStore } from "@/lib/store"
 import { useLanguage } from "@/components/language-provider"
 import { Heart, MessageCircle, UserPlus, UserCheck, Bell, Check } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { acceptFollowRequest as acceptFollowApi, rejectFollowRequest as rejectFollowApi } from "@/lib/api/follows"
 
 export function NotificationsPage() {
   const { t } = useLanguage()
-  const { notifications, currentUser, markNotificationAsRead, markAllNotificationsAsRead, acceptFollowRequest } =
-    useAppStore()
+  const { notifications, currentUser, markNotificationAsRead, markAllNotificationsAsRead } = useAppStore()
 
   const userNotifications = notifications.filter((n) => n.userId === currentUser?.id)
   const unreadCount = userNotifications.filter((n) => !n.isRead).length
@@ -134,10 +134,10 @@ export function NotificationsPage() {
                     {/* Follow Request Actions */}
                     {notification.type === "follow_request" && (
                       <div className="mt-3 flex gap-2">
-                        <Button size="sm" onClick={() => acceptFollowRequest(notification.id)}>
+                        <Button size="sm" onClick={async () => { await acceptFollowApi(notification.id); markNotificationAsRead(notification.id) }}>
                           قبول
                         </Button>
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" onClick={async () => { await rejectFollowApi(notification.id); markNotificationAsRead(notification.id) }}>
                           رفض
                         </Button>
                       </div>

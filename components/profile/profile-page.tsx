@@ -10,6 +10,9 @@ import { useAppStore } from "@/lib/store"
 import { useLanguage } from "@/components/language-provider"
 import { getMockPostsByUserId, getMockFollowersCount, getMockFollowingCount } from "@/lib/mock-data"
 import { Settings, Calendar, Grid3X3, Map, Star, UserPlus, MessageCircle } from "lucide-react"
+import { FollowersModal } from './followers-modal'
+import { EditProfileModal } from './edit-profile-modal'
+import { apiFetch } from "@/lib/api/client"
 import { PostGrid } from "./post-grid"
 import { VisitedMap } from "./visited-map"
 import { RatingsList } from "./ratings-list"
@@ -18,6 +21,9 @@ export function ProfilePage() {
   const { t } = useLanguage()
   const { currentUser } = useAppStore()
   const [activeTab, setActiveTab] = useState("posts")
+  const [followersOpen, setFollowersOpen] = useState(false)
+  const [followingOpen, setFollowingOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
 
   if (!currentUser) return null
 
@@ -73,25 +79,44 @@ export function ProfilePage() {
                     <div className="text-2xl font-bold">{userPosts.length}</div>
                     <div className="text-sm text-muted-foreground">{t("posts")}</div>
                   </div>
-                  <div className="text-center">
+                  <button className="text-center" onClick={() => setFollowersOpen(true)}>
                     <div className="text-2xl font-bold">{followersCount}</div>
                     <div className="text-sm text-muted-foreground">{t("followers")}</div>
-                  </div>
-                  <div className="text-center">
+                  </button>
+                  <button className="text-center" onClick={() => setFollowingOpen(true)}>
                     <div className="text-2xl font-bold">{followingCount}</div>
                     <div className="text-sm text-muted-foreground">{t("following")}</div>
-                  </div>
+                  </button>
                 </div>
 
                 {/* Action Buttons */}
                 <div className="flex gap-2 justify-center md:justify-start">
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
                     تعديل الملف الشخصي
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    title="Follow"
+                    onClick={async () => {
+                      // Example follow by username lookup; in production, pass userId
+                      try {
+                        await apiFetch(`/api/follows`, { method: 'POST', body: JSON.stringify({ followingId: currentUser.id }) })
+                      } catch { }
+                    }}
+                  >
                     <UserPlus className="h-4 w-4" />
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    title="Message"
+                    onClick={async () => {
+                      try {
+                        await apiFetch(`/api/conversations`, { method: 'POST', body: JSON.stringify({ userId: currentUser.id }) })
+                      } catch { }
+                    }}
+                  >
                     <MessageCircle className="h-4 w-4" />
                   </Button>
                 </div>
@@ -116,9 +141,9 @@ export function ProfilePage() {
                 <Calendar className="h-4 w-4" />
                 <span>
                   انضم في{" "}
-                  {new Date(currentUser.joinedAt).toLocaleDateString("ar-SA", {
-                    year: "numeric",
-                    month: "long",
+                  {new Date(currentUser.joinedAt).toLocaleDateString('en-GB', {
+                    year: 'numeric',
+                    month: 'long',
                   })}
                 </span>
               </div>
@@ -156,6 +181,9 @@ export function ProfilePage() {
           <RatingsList posts={userPosts} />
         </TabsContent>
       </Tabs>
+      <EditProfileModal open={editOpen} onClose={() => setEditOpen(false)} />
+      <FollowersModal username={currentUser.username} type="followers" open={followersOpen} onClose={() => setFollowersOpen(false)} />
+      <FollowersModal username={currentUser.username} type="following" open={followingOpen} onClose={() => setFollowingOpen(false)} />
     </div>
   )
 }

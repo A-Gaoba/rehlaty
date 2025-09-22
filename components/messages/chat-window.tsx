@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -12,9 +12,12 @@ import { useLanguage } from "@/components/language-provider"
 import type { Conversation, Message } from "@/lib/types"
 import { ArrowRight, Send, Phone, Video, Info } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { listMessages, sendMessage } from "@/lib/api/messages"
+import { realtime } from "@/lib/realtime"
 
 interface ChatWindowProps {
-  conversation: Conversation
+  conversation: any
   onBack: () => void
 }
 
@@ -22,54 +25,33 @@ export function ChatWindow({ conversation, onBack }: ChatWindowProps) {
   const { t } = useLanguage()
   const { currentUser, markConversationAsRead } = useAppStore()
   const [newMessage, setNewMessage] = useState("")
-  const [messages, setMessages] = useState<Message[]>([
-    // Mock messages for the conversation
-    {
-      id: "1",
-      conversationId: conversation.id,
-      senderId: conversation.participants[0].id,
-      content: "مرحباً! شاهدت منشورك عن الكرملين، هل يمكنك إعطائي نصائح للزيارة؟",
-      type: "text",
-      isRead: true,
-      createdAt: "2024-01-15T12:00:00Z",
-    },
-    {
-      id: "2",
-      conversationId: conversation.id,
-      senderId: conversation.participants[1].id,
-      content: "أهلاً وسهلاً! بالطبع، أنصحك بحجز التذاكر مسبقاً والذهاب صباحاً لتجنب الزحام",
-      type: "text",
-      isRead: true,
-      createdAt: "2024-01-15T12:05:00Z",
-    },
-    {
-      id: "3",
-      conversationId: conversation.id,
-      senderId: conversation.participants[0].id,
-      content: "شكراً جزيلاً! وما رأيك في الجولة المرشدة؟ هل تستحق التكلفة الإضافية؟",
-      type: "text",
-      isRead: true,
-      createdAt: "2024-01-15T12:10:00Z",
-    },
-    {
-      id: "4",
-      conversationId: conversation.id,
-      senderId: conversation.participants[1].id,
-      content: "نعم، الجولة المرشدة ممتازة خاصة إذا كانت هذه زيارتك الأولى. المرشد يشرح التاريخ بطريقة شيقة",
-      type: "text",
-      isRead: false,
-      createdAt: "2024-01-15T12:15:00Z",
-    },
-  ])
   const [isTyping, setIsTyping] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const qc = useQueryClient()
+
+  const messagesQuery = useInfiniteQuery({
+    queryKey: ["messages", conversation.id],
+    queryFn: async ({ pageParam }) => listMessages(conversation.id, pageParam as string | undefined),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    refetchInterval: 15000,
+  })
+
+  const messages = useMemo(() => {
+    const items = messagesQuery.data?.pages.flatMap((p: any) => p.items) ?? []
+    // API returns newest first; display oldest first
+    return [...items].reverse() as Message[]
+  }, [messagesQuery.data])
 
   const otherParticipant = conversation.participants.find((p) => p.id !== currentUser?.id)
 
   useEffect(() => {
-    // Mark conversation as read when opened
     markConversationAsRead(conversation.id)
     scrollToBottom()
+    const unsubscribe = realtime.subscribeToConversation(conversation.id, () => {
+      messagesQuery.refetch()
+    })
+    return () => unsubscribe()
   }, [conversation.id, markConversationAsRead])
 
   useEffect(() => {
@@ -80,40 +62,46 @@ export function ChatWindow({ conversation, onBack }: ChatWindowProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
 
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newMessage.trim() || !currentUser) return
-
-    const message: Message = {
-      id: Date.now().toString(),
-      conversationId: conversation.id,
-      senderId: currentUser.id,
-      content: newMessage.trim(),
-      type: "text",
-      isRead: false,
-      createdAt: new Date().toISOString(),
-    }
-
-    setMessages((prev) => [...prev, message])
-    setNewMessage("")
-
-    // Simulate typing indicator and response
-    setIsTyping(true)
-    setTimeout(() => {
-      setIsTyping(false)
-      if (otherParticipant) {
-        const response: Message = {
-          id: (Date.now() + 1).toString(),
+  const sendMutation = useMutation({
+    mutationFn: (content: string) => sendMessage(conversation.id, content),
+    onMutate: async (content) => {
+      await qc.cancelQueries({ queryKey: ["messages", conversation.id] })
+      const prev = qc.getQueryData<any>(["messages", conversation.id])
+      qc.setQueryData<any>(["messages", conversation.id], (data: any) => {
+        if (!data) return data
+        const optimistic: any = {
+          id: `tmp-${Date.now()}`,
           conversationId: conversation.id,
-          senderId: otherParticipant.id,
-          content: "شكراً لك! سأتابع معك إذا احتجت المزيد من النصائح",
+          senderId: currentUser?.id,
+          content,
           type: "text",
           isRead: false,
           createdAt: new Date().toISOString(),
         }
-        setMessages((prev) => [...prev, response])
-      }
-    }, 2000)
+        const pages = data.pages.slice()
+        // add to last page (oldest) for ascending display after reverse
+        pages[pages.length - 1] = {
+          ...pages[pages.length - 1],
+          items: [...pages[pages.length - 1].items, optimistic],
+        }
+        return { ...data, pages }
+      })
+      return { prev }
+    },
+    onError: (_e, _vars, ctx) => {
+      if (ctx?.prev) qc.setQueryData(["messages", conversation.id], ctx.prev)
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["messages", conversation.id] })
+    },
+  })
+
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newMessage.trim() || !currentUser) return
+    const content = newMessage.trim()
+    setNewMessage("")
+    sendMutation.mutate(content)
   }
 
   const formatMessageTime = (dateString: string) => {

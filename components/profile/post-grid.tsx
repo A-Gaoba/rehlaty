@@ -32,13 +32,11 @@ export function PostGrid({ posts }: PostGridProps) {
     <>
       <div className="grid grid-cols-3 gap-1 md:gap-4">
         {posts.map((post) => (
-          <Card
-            key={post.id}
-            className="aspect-square overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
-            onClick={() => setSelectedPost(post)}
-          >
+          <Card key={post.id} className="aspect-square overflow-hidden hover:opacity-90 transition-opacity">
             <CardContent className="p-0 relative h-full">
-              <img src={post.image || "/placeholder.svg"} alt={post.caption} className="w-full h-full object-cover" />
+              <a href={`/p/${post.id}`} aria-label="عرض تفاصيل المنشور">
+                <img src={post.image || "/placeholder.svg"} alt={post.caption} className="w-full h-full object-cover" />
+              </a>
 
               {/* Overlay with stats */}
               <div className="absolute inset-0 bg-black/0 hover:bg-black/50 transition-colors flex items-center justify-center opacity-0 hover:opacity-100">

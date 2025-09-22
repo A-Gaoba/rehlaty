@@ -9,7 +9,9 @@ import { useAppStore } from "@/lib/store"
 import { Search, Bell, MessageCircle, Settings } from "lucide-react"
 import { useState } from "react"
 import { logout } from "@/lib/api/auth"
-import { useQueryClient } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { listNotifications } from "@/lib/api/notifications"
+import Link from "next/link"
 
 export function TopNavbar() {
   const { t } = useLanguage()
@@ -23,7 +25,14 @@ export function TopNavbar() {
     await qc.invalidateQueries({ queryKey: ["me"] })
   }
 
-  const unreadNotifications = notifications.filter((n) => n.userId === currentUser?.id && !n.isRead).length
+  // Poll notifications to show badge count
+  const { data: notifData } = useQuery({
+    queryKey: ["notifications", "poll"],
+    queryFn: async () => listNotifications(),
+    refetchInterval: 15000,
+    enabled: !!currentUser,
+  })
+  const unreadNotifications = notifData?.items?.filter((n: any) => !n.isRead).length || 0
   const unreadMessages = conversations.reduce((total, conv) => total + conv.unreadCount, 0)
 
   return (
@@ -51,24 +60,28 @@ export function TopNavbar() {
         {/* Actions */}
         <div className="flex items-center gap-2">
           {/* Notifications */}
-          <Button variant="ghost" size="sm" className="relative" onClick={() => setActiveTab("notifications")}>
-            <Bell className="h-5 w-5" />
-            {unreadNotifications > 0 && (
-              <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs">
-                {unreadNotifications}
-              </Badge>
-            )}
-          </Button>
+          <Link href="/notifications">
+            <Button variant="ghost" size="sm" className="relative">
+              <Bell className="h-5 w-5" />
+              {unreadNotifications > 0 && (
+                <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs">
+                  {unreadNotifications}
+                </Badge>
+              )}
+            </Button>
+          </Link>
 
           {/* Messages */}
-          <Button variant="ghost" size="sm" className="relative" onClick={() => setActiveTab("messages")}>
-            <MessageCircle className="h-5 w-5" />
-            {unreadMessages > 0 && (
-              <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs">
-                {unreadMessages}
-              </Badge>
-            )}
-          </Button>
+          <Link href="/messages">
+            <Button variant="ghost" size="sm" className="relative">
+              <MessageCircle className="h-5 w-5" />
+              {unreadMessages > 0 && (
+                <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs">
+                  {unreadMessages}
+                </Badge>
+              )}
+            </Button>
+          </Link>
 
           {/* Language Toggle */}
           <LanguageToggle />

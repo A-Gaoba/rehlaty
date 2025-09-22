@@ -22,6 +22,7 @@ export function CommentsSection({ postId }: CommentsSectionProps) {
   const { currentUser } = useAppStore()
   const [newComment, setNewComment] = useState("")
   const [replyTo, setReplyTo] = useState<string | null>(null)
+  const [replyText, setReplyText] = useState("")
   const qc = useQueryClient()
 
   const rootQuery = useInfiniteQuery({
@@ -33,12 +34,51 @@ export function CommentsSection({ postId }: CommentsSectionProps) {
 
   const rootComments = useMemo(() => rootQuery.data?.pages.flatMap((p) => p.items) ?? [], [rootQuery.data])
 
-  const repliesQuery = (parentId: string) =>
-    useQuery({
+  // Child component to fetch and render replies to satisfy hooks rules
+  function Replies({ parentId }: { parentId: string }) {
+    const { data: replies } = useQuery({
       queryKey: ["comments", postId, parentId],
       queryFn: async () => (await listComments(postId, { parentId, limit: 50 })).items,
       enabled: true,
     })
+    if (!replies?.length) return null
+    return (
+      <div className="pl-8 space-y-3">
+        {replies.map((reply: any) => (
+          <div key={reply.id} className="flex gap-3">
+            <Avatar className="h-7 w-7">
+              <AvatarImage src={reply.user.avatar || "/placeholder.svg"} alt={reply.user.displayName} />
+              <AvatarFallback>{reply.user.displayName.charAt(0)}</AvatarFallback>
+            </Avatar>
+            <div className="flex-1">
+              <div className="bg-muted rounded-lg px-3 py-2">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="font-semibold text-xs">{reply.user.displayName}</span>
+                </div>
+                <p className="text-sm">{reply.content}</p>
+              </div>
+              <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleLikeComment(reply.id)}
+                  className="p-0 h-auto text-xs"
+                >
+                  <Heart
+                    className={cn(
+                      "h-3 w-3 mr-1",
+                      reply.isLiked ? "fill-red-500 text-red-500" : "text-muted-foreground",
+                    )}
+                  />
+                  {reply.likesCount > 0 && reply.likesCount}
+                </Button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
 
   const addMutation = useMutation({
     mutationFn: (vars: { content: string; parentId?: string }) => createComment(postId, vars),
@@ -105,6 +145,7 @@ export function CommentsSection({ postId }: CommentsSectionProps) {
       await qc.invalidateQueries({ queryKey: ["comments", postId] })
       setNewComment("")
       setReplyTo(null)
+      setReplyText("")
     },
   })
 
@@ -191,71 +232,37 @@ export function CommentsSection({ postId }: CommentsSectionProps) {
                   variant="ghost"
                   size="sm"
                   className="p-0 h-auto text-xs text-muted-foreground"
-                  onClick={() => setReplyTo(replyTo === comment.id ? null : comment.id)}
+                  onClick={() => {
+                    const next = replyTo === comment.id ? null : comment.id
+                    setReplyTo(next)
+                    if (next) setReplyText("")
+                  }}
                 >
                   رد
                 </Button>
               </div>
 
               {/* Replies */}
-              {(() => {
-                const { data: replies } = repliesQuery(comment.id)
-                return (
-                  <div className="pl-8 space-y-3">
-                    {replies?.map((reply: any) => (
-                      <div key={reply.id} className="flex gap-3">
-                        <Avatar className="h-7 w-7">
-                          <AvatarImage src={reply.user.avatar || "/placeholder.svg"} alt={reply.user.displayName} />
-                          <AvatarFallback>{reply.user.displayName.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <div className="bg-muted rounded-lg px-3 py-2">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="font-semibold text-xs">{reply.user.displayName}</span>
-                            </div>
-                            <p className="text-sm">{reply.content}</p>
-                          </div>
-                          <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleLikeComment(reply.id)}
-                              className="p-0 h-auto text-xs"
-                            >
-                              <Heart
-                                className={cn(
-                                  "h-3 w-3 mr-1",
-                                  reply.isLiked ? "fill-red-500 text-red-500" : "text-muted-foreground",
-                                )}
-                              />
-                              {reply.likesCount > 0 && reply.likesCount}
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )
-              })()}
+              <Replies parentId={comment.id} />
 
               {/* Reply input under selected parent */}
               {replyTo === comment.id && (
                 <form
                   onSubmit={(e) => {
                     e.preventDefault()
-                    if (!newComment.trim() || !currentUser) return
-                    addMutation.mutate({ content: newComment.trim(), parentId: comment.id })
+                    if (!replyText.trim() || !currentUser) return
+                    addMutation.mutate({ content: replyText.trim(), parentId: comment.id })
                   }}
                   className="flex gap-2 mt-2"
                 >
                   <Input
                     type="text"
                     placeholder="اكتب ردًا..."
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
                     className="flex-1"
                   />
-                  <Button type="submit" size="sm" disabled={!newComment.trim()}>
+                  <Button type="submit" size="sm" disabled={!replyText.trim()}>
                     <Send className="h-4 w-4" />
                   </Button>
                 </form>

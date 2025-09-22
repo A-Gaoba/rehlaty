@@ -1,44 +1,48 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useLanguage } from "@/components/language-provider"
 import { useAppStore } from "@/lib/store"
-import { mockCities, mockUsers } from "@/lib/mock-data"
+import { mockCities } from "@/lib/mock-data"
 import { Search, MapPin, Star, Users, TrendingUp } from "lucide-react"
 import { CityCard } from "./city-card"
 import { UserCard } from "./user-card"
 import { TrendingPosts } from "./trending-posts"
+import { useDebounce } from "use-debounce"
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query"
+import { searchUsers, searchPosts, topDestinations } from "@/lib/api/search"
 
 export function DiscoverPage() {
   const { t } = useLanguage()
   const { posts } = useAppStore()
   const [searchQuery, setSearchQuery] = useState("")
+  const [debounced] = useDebounce(searchQuery, 300)
   const [activeFilter, setActiveFilter] = useState("all")
   const [activeTab, setActiveTab] = useState("cities")
 
-  // Filter data based on search query
-  const filteredCities = mockCities.filter(
-    (city) => city.nameAr.includes(searchQuery) || city.name.toLowerCase().includes(searchQuery.toLowerCase()),
-  )
+  const usersQuery = useQuery({
+    queryKey: ["search-users", debounced],
+    queryFn: async () => (debounced ? searchUsers(debounced) : { items: [] }),
+  })
 
-  const filteredUsers = mockUsers.filter(
-    (user) =>
-      user.displayName.includes(searchQuery) ||
-      user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.bio.includes(searchQuery),
-  )
+  const postsQuery = useInfiniteQuery({
+    queryKey: ["search-posts", debounced],
+    queryFn: async ({ pageParam }) => searchPosts({ q: debounced, cursor: pageParam as string | undefined, limit: 12 }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+  })
 
-  const filteredPosts = posts.filter(
-    (post) =>
-      post.caption.includes(searchQuery) ||
-      post.location.name.includes(searchQuery) ||
-      post.location.city.includes(searchQuery) ||
-      post.hashtags.some((tag) => tag.includes(searchQuery)),
-  )
+  const topCitiesQuery = useQuery({
+    queryKey: ["top-destinations"],
+    queryFn: async () => topDestinations("7d"),
+  })
+
+  const users = usersQuery.data?.items || []
+  const trendingPosts = useMemo(() => postsQuery.data?.pages.flatMap((p) => p.items) || [], [postsQuery.data])
 
   const categories = [
     { id: "all", name: "الكل", icon: TrendingUp },
@@ -118,8 +122,8 @@ export function DiscoverPage() {
                 أفضل الوجهات السياحية
               </h2>
               <div className="grid gap-4 md:grid-cols-2">
-                {(searchQuery ? filteredCities : mockCities).map((city) => (
-                  <CityCard key={city.id} city={city} />
+                {(topCitiesQuery.data?.items || mockCities).map((city: any, idx: number) => (
+                  <CityCard key={city.id || idx} city={city} />
                 ))}
               </div>
             </div>
@@ -163,7 +167,7 @@ export function DiscoverPage() {
                 المسافرون المميزون
               </h2>
               <div className="grid gap-4 md:grid-cols-2">
-                {(searchQuery ? filteredUsers : mockUsers).slice(0, 6).map((user) => (
+                {(users || []).slice(0, 6).map((user: any) => (
                   <UserCard key={user.id} user={user} />
                 ))}
               </div>
@@ -173,7 +177,14 @@ export function DiscoverPage() {
 
         {/* Trending Tab */}
         <TabsContent value="trending" className="mt-6">
-          <TrendingPosts posts={searchQuery ? filteredPosts : posts} />
+          <TrendingPosts posts={trendingPosts.length ? trendingPosts : posts} />
+          {postsQuery.hasNextPage && (
+            <div className="text-center mt-4">
+              <Button variant="outline" size="sm" onClick={() => postsQuery.fetchNextPage()} disabled={postsQuery.isFetchingNextPage}>
+                {postsQuery.isFetchingNextPage ? "جاري التحميل..." : "تحميل المزيد"}
+              </Button>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>
