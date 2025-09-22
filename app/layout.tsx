@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { LanguageProvider } from "@/components/language-provider"
 import "./globals.css"
 import { Suspense } from "react"
+import { QueryProvider } from "@/components/providers/query-provider"
 
 const notoSansArabic = Noto_Sans_Arabic({
   subsets: ["arabic"],
@@ -31,7 +32,9 @@ export default function RootLayout({
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable} ${notoSansArabic.variable}`}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
           <Suspense fallback={null}>
-            <LanguageProvider>{children}</LanguageProvider>
+            <LanguageProvider>
+              <QueryProvider>{children}</QueryProvider>
+            </LanguageProvider>
           </Suspense>
         </ThemeProvider>
         <Analytics />

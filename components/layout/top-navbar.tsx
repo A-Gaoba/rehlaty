@@ -8,11 +8,20 @@ import { useLanguage } from "@/components/language-provider"
 import { useAppStore } from "@/lib/store"
 import { Search, Bell, MessageCircle, Settings } from "lucide-react"
 import { useState } from "react"
+import { logout } from "@/lib/api/auth"
+import { useQueryClient } from "@tanstack/react-query"
 
 export function TopNavbar() {
   const { t } = useLanguage()
-  const { activeTab, setActiveTab, notifications, conversations, currentUser } = useAppStore()
+  const { activeTab, setActiveTab, notifications, conversations, currentUser, setCurrentUser } = useAppStore()
   const [searchQuery, setSearchQuery] = useState("")
+  const qc = useQueryClient()
+
+  const handleLogout = async () => {
+    await logout()
+    setCurrentUser(null)
+    await qc.invalidateQueries({ queryKey: ["me"] })
+  }
 
   const unreadNotifications = notifications.filter((n) => n.userId === currentUser?.id && !n.isRead).length
   const unreadMessages = conversations.reduce((total, conv) => total + conv.unreadCount, 0)
@@ -65,7 +74,7 @@ export function TopNavbar() {
           <LanguageToggle />
 
           {/* Settings - Desktop only */}
-          <Button variant="ghost" size="sm" className="hidden md:flex">
+          <Button variant="ghost" size="sm" className="hidden md:flex" onClick={handleLogout} aria-label="logout">
             <Settings className="h-4 w-4" />
           </Button>
         </div>

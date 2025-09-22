@@ -10,7 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useLanguage } from "@/components/language-provider"
 import { LanguageToggle } from "@/components/ui/language-toggle"
 import { useAppStore } from "@/lib/store"
-import { mockUsers } from "@/lib/mock-data"
+import { login, register } from "@/lib/api/auth"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { MapPin, Users, Camera } from "lucide-react"
 
 export function AuthPage() {
@@ -18,17 +19,48 @@ export function AuthPage() {
   const setCurrentUser = useAppStore((state) => state.setCurrentUser)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const qc = useQueryClient()
 
-  const handleSignIn = (e: React.FormEvent) => {
+  const loginMutation = useMutation({
+    mutationFn: (vars: { emailOrUsername: string; password: string }) => login(vars),
+    onSuccess: async (data) => {
+      setCurrentUser({
+        id: data.user.id,
+        username: data.user.username,
+        displayName: data.user.displayName,
+        avatar: "/placeholder-user.jpg",
+        bio: "",
+        coverPhoto: "/placeholder.jpg",
+        isPrivate: data.user.isPrivate,
+        isVerified: data.user.isVerified,
+        followersCount: 0,
+        followingCount: 0,
+        postsCount: 0,
+        joinedAt: new Date().toISOString(),
+        interests: [],
+      })
+      await qc.invalidateQueries({ queryKey: ["me"] })
+    },
+  })
+
+  const registerMutation = useMutation({
+    mutationFn: (vars: { email: string; username: string; password: string; displayName: string }) => register(vars),
+    onSuccess: async () => {
+      // After register, proceed to login flow for UX
+      await loginMutation.mutateAsync({ emailOrUsername: email, password })
+    },
+  })
+
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Mock authentication - just set the first user
-    setCurrentUser(mockUsers[0])
+    await loginMutation.mutateAsync({ emailOrUsername: email, password })
   }
 
-  const handleSignUp = (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Mock registration - just set the first user
-    setCurrentUser(mockUsers[0])
+    // Derive a username from email for now; UI can be extended to ask explicitly
+    const username = email.split("@")[0]
+    await registerMutation.mutateAsync({ email, username, password, displayName: username })
   }
 
   return (
@@ -105,7 +137,7 @@ export function AuthPage() {
                       required
                     />
                   </div>
-                  <Button type="submit" className="w-full">
+                  <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
                     {t("signIn")}
                   </Button>
                   <div className="text-center">
@@ -139,7 +171,7 @@ export function AuthPage() {
                       required
                     />
                   </div>
-                  <Button type="submit" className="w-full">
+                  <Button type="submit" className="w-full" disabled={registerMutation.isPending}>
                     {t("signUp")}
                   </Button>
                 </form>
