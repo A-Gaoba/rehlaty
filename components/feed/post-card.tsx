@@ -110,34 +110,34 @@ export function PostCard({ post }: PostCardProps) {
   return (
     <Card className="overflow-hidden">
       {/* Post Header */}
-      <div className="flex items-center justify-between p-4 pb-3">
-        <div className="flex items-center gap-3">
-          <Link href={`/u/${post.user.username}`} aria-label={`عرض ملف ${post.user.username}`} className="rounded-full focus:outline focus:outline-2 focus:outline-[#1E88E5]">
-            <Avatar className="h-10 w-10">
+      <div className="flex items-center justify-between p-3 sm:p-4 pb-2 sm:pb-3">
+        <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+          <Link href={`/u/${post.user.username}`} aria-label={`عرض ملف ${post.user.username}`} className="rounded-full focus:outline focus:outline-2 focus:outline-[#1E88E5] shrink-0">
+            <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
               <AvatarImage src={post.user.avatar || "/placeholder.svg"} alt={post.user.displayName} />
               <AvatarFallback>{post.user.displayName.charAt(0)}</AvatarFallback>
             </Avatar>
           </Link>
-          <div className="flex flex-col">
+          <div className="flex flex-col min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <Link href={`/u/${post.user.username}`} className="font-semibold text-sm rounded focus:outline focus:outline-2 focus:outline-[#1E88E5]">
+              <Link href={`/u/${post.user.username}`} className="font-semibold text-sm rounded focus:outline focus:outline-2 focus:outline-[#1E88E5] truncate">
                 {post.user.displayName}
               </Link>
               {post.user.isVerified && (
-                <div className="w-4 h-4 bg-primary rounded-full flex items-center justify-center">
+                <div className="w-3 h-3 sm:w-4 sm:h-4 bg-primary rounded-full flex items-center justify-center shrink-0">
                   <span className="text-primary-foreground text-xs">✓</span>
                 </div>
               )}
             </div>
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <MapPin className="h-3 w-3" />
-              <span>
+              <MapPin className="h-3 w-3 shrink-0" />
+              <span className="truncate">
                 {post.location.name}, {post.location.city}
               </span>
             </div>
           </div>
         </div>
-        <Button variant="ghost" size="sm" aria-label="المزيد">
+        <Button variant="ghost" size="sm" aria-label="المزيد" className="shrink-0">
           <MoreHorizontal className="h-4 w-4" />
         </Button>
       </div>
@@ -145,22 +145,22 @@ export function PostCard({ post }: PostCardProps) {
       {/* Post Media */}
       {media}
 
-      <CardContent className="p-4">
+      <CardContent className="p-3 sm:p-4">
         {/* Action Buttons */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between mb-2 sm:mb-3">
+          <div className="flex items-center gap-3 sm:gap-4">
             <Button variant="ghost" size="sm" onClick={handleLike} className="p-0 h-auto" aria-label={post.isLiked ? "إلغاء الإعجاب" : "إعجاب"}>
-              <Heart className={cn("h-6 w-6", post.isLiked ? "fill-red-500 text-red-500" : "text-foreground")} />
+              <Heart className={cn("h-5 w-5 sm:h-6 sm:w-6", post.isLiked ? "fill-red-500 text-red-500" : "text-foreground")} />
             </Button>
             <Button variant="ghost" size="sm" onClick={() => setShowComments(!showComments)} className="p-0 h-auto" aria-label="التعليقات">
-              <MessageCircle className="h-6 w-6" />
+              <MessageCircle className="h-5 w-5 sm:h-6 sm:w-6" />
             </Button>
             <Button variant="ghost" size="sm" onClick={handleShare} className="p-0 h-auto" aria-label="مشاركة">
-              <Share className="h-6 w-6" />
+              <Share className="h-5 w-5 sm:h-6 sm:w-6" />
             </Button>
           </div>
           <Button variant="ghost" size="sm" onClick={handleSave} className="p-0 h-auto" aria-label={saved ? "إزالة من المحفوظات" : "حفظ"}>
-            <Bookmark className={cn("h-6 w-6", saved ? "fill-foreground text-foreground" : "text-foreground")} />
+            <Bookmark className={cn("h-5 w-5 sm:h-6 sm:w-6", saved ? "fill-foreground text-foreground" : "text-foreground")} />
           </Button>
         </div>
 
@@ -172,7 +172,7 @@ export function PostCard({ post }: PostCardProps) {
         {/* Caption */}
         <div className="mb-2">
           <Link href={`/u/${post.user.username}`} className="font-semibold text-sm rounded focus:outline focus:outline-2 focus:outline-[#1E88E5]">{post.user.displayName}</Link>
-          <Link href={`/p/${post.id}`} className="text-sm mr-2 hover:underline">{post.caption}</Link>
+          <Link href={`/p/${post.id}`} className="text-sm mr-2 hover:underline break-words">{post.caption}</Link>
         </div>
 
         {/* Hashtags */}
@@ -192,7 +192,7 @@ export function PostCard({ post }: PostCardProps) {
             variant="ghost"
             size="sm"
             onClick={() => setShowComments(!showComments)}
-            className="p-0 h-auto text-muted-foreground hover:text-foreground"
+            className="p-0 h-auto text-muted-foreground hover:text-foreground text-sm"
             aria-label="عرض التعليقات"
           >
             عرض جميع التعليقات ({post.commentsCount})

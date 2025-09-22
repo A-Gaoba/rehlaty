@@ -21,8 +21,8 @@ export function BottomNavigation() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-around h-16">
+      <div className="container mx-auto px-2 sm:px-4">
+        <div className="flex items-center justify-around h-14 sm:h-16">
           {navItems.map((item) => {
             const Icon = item.icon
             const isActive = pathname === item.href
@@ -33,13 +33,13 @@ export function BottomNavigation() {
                   variant="ghost"
                   size="sm"
                   className={cn(
-                    "w-full flex flex-col items-center gap-1 h-auto py-2 px-3",
+                    "w-full flex flex-col items-center gap-1 h-auto py-1.5 sm:py-2 px-2 sm:px-3",
                     item.isSpecial && "bg-primary text-primary-foreground hover:bg-primary/90",
                     isActive && !item.isSpecial && "text-primary",
                   )}
                 >
-                  <Icon className={cn("h-5 w-5", item.isSpecial && "h-6 w-6")} />
-                  <span className="text-xs font-medium">{item.label}</span>
+                  <Icon className={cn("h-4 w-4 sm:h-5 sm:w-5", item.isSpecial && "h-5 w-5 sm:h-6 sm:w-6")} />
+                  <span className="text-xs font-medium leading-tight">{item.label}</span>
                 </Button>
               </Link>
             )

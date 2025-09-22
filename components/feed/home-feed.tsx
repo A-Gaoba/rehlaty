@@ -36,21 +36,21 @@ export function HomeFeed() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-2xl">
+    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-2xl">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">{t("home")}</h1>
-          <p className="text-muted-foreground">اكتشف تجارب المسافرين العرب في روسيا</p>
+      <div className="flex items-center justify-between mb-4 sm:mb-6">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold truncate">{t("home")}</h1>
+          <p className="text-sm sm:text-base text-muted-foreground truncate">اكتشف تجارب المسافرين العرب في روسيا</p>
         </div>
-        <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
+        <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={isRefreshing} className="shrink-0">
           <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
         </Button>
       </div>
 
       {/* Stories/Highlights Section */}
-      <div className="mb-6">
-        <div className="flex gap-4 overflow-x-auto pb-2">
+      <div className="mb-4 sm:mb-6">
+        <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 scrollbar-hide">
           {[
             { name: "موسكو", image: "/red-square-moscow.jpg" },
             { name: "سانت بطرسبرغ", image: "/hermitage-museum.png" },
@@ -58,7 +58,7 @@ export function HomeFeed() {
             { name: "قازان", image: "/bolshoi-theatre.jpg" },
           ].map((city, index) => (
             <div key={index} className="flex flex-col items-center gap-2 min-w-fit">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-r from-primary to-accent p-0.5">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gradient-to-r from-primary to-accent p-0.5">
                 <div className="w-full h-full rounded-full bg-background p-0.5">
                   <Image
                     src={city.image || "/placeholder.svg"}
@@ -69,22 +69,22 @@ export function HomeFeed() {
                   />
                 </div>
               </div>
-              <span className="text-xs text-muted-foreground">{city.name}</span>
+              <span className="text-xs text-muted-foreground text-center leading-tight">{city.name}</span>
             </div>
           ))}
         </div>
       </div>
 
       {/* Posts Feed */}
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {posts.map((post) => (
           <PostCard key={post.id} post={post} />
         ))}
-        {isLoading && <div className="text-center text-sm text-muted-foreground py-8">جاري التحميل...</div>}
+        {isLoading && <div className="text-center text-sm text-muted-foreground py-6 sm:py-8">جاري التحميل...</div>}
       </div>
 
       {/* Load More */}
-      <div className="text-center py-8">
+      <div className="text-center py-6 sm:py-8">
         {hasNextPage ? (
           <Button
             variant="outline"

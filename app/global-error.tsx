@@ -8,17 +8,29 @@ export default function GlobalError({
   reset: () => void
 }) {
   return (
-    <html>
-      <body>
-        <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6">
-          <h2>حدث خطأ غير متوقع</h2>
-          <button onClick={() => reset()} className="px-3 py-1 border rounded">
-            إعادة المحاولة
-          </button>
+    <html lang="ar" dir="rtl">
+      <body className="font-sans">
+        <div className="min-h-screen flex flex-col items-center justify-center gap-6 p-4 sm:p-6">
+          <div className="text-center max-w-md mx-auto">
+            <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-2">
+              حدث خطأ غير متوقع
+            </h2>
+            <p className="text-sm sm:text-base text-muted-foreground mb-6">
+              نعتذر عن هذا الخطأ. يرجى المحاولة مرة أخرى.
+            </p>
+            <button
+              onClick={() => reset()}
+              className="w-full sm:w-auto px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
+            >
+              إعادة المحاولة
+            </button>
+          </div>
           {process.env.NODE_ENV !== 'production' && (
-            <pre className="text-xs text-muted-foreground mt-2 whitespace-pre-wrap">
-              {error?.message}
-            </pre>
+            <div className="w-full max-w-2xl">
+              <pre className="text-xs sm:text-sm text-muted-foreground bg-muted p-4 rounded-lg overflow-auto whitespace-pre-wrap">
+                {error?.message}
+              </pre>
+            </div>
           )}
         </div>
       </body>
