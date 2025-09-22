@@ -10,6 +10,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAppStore } from "@/lib/store"
 import { useLanguage } from "@/components/language-provider"
 import { mockCities } from "@/lib/mock-data"
+import { uploadImage } from "@/lib/api/uploads"
+import { createPost } from "@/lib/api/posts"
 import { Camera, MapPin, Star, X, Upload } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -20,41 +22,44 @@ export function CreatePost() {
   const [selectedLocation, setSelectedLocation] = useState("")
   const [rating, setRating] = useState(5)
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleImageUpload = () => {
-    // Mock image upload - use a placeholder
-    const mockImages = [
-      "/placeholder.svg?height=400&width=400&text=Moscow+Kremlin",
-      "/placeholder.svg?height=400&width=400&text=Saint+Petersburg+Palace",
-      "/placeholder.svg?height=400&width=400&text=Sochi+Mountains",
-      "/placeholder.svg?height=400&width=400&text=Kazan+Mosque",
-    ]
-    setSelectedImage(mockImages[Math.floor(Math.random() * mockImages.length)])
+    const input = document.createElement("input")
+    input.type = "file"
+    input.accept = "image/*"
+    input.onchange = () => {
+      const file = input.files?.[0]
+      if (!file) return
+      setSelectedFile(file)
+      const url = URL.createObjectURL(file)
+      setSelectedImage(url)
+    }
+    input.click()
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!caption.trim() || !selectedLocation || !selectedImage || !currentUser) return
+    if (!caption.trim() || !selectedLocation || !selectedImage || !currentUser || !selectedFile) return
 
     setIsSubmitting(true)
 
     const selectedCity = mockCities.find((city) => city.id === selectedLocation)
     if (!selectedCity) return
 
-    // Create new post
-    addPost({
-      userId: currentUser.id,
-      user: currentUser,
+    // Upload image
+    const { fileId } = await uploadImage(selectedFile)
+    // Create new post via API
+    await createPost({
       caption: caption.trim(),
-      image: selectedImage,
+      imageFileId: fileId,
       location: {
         name: selectedCity.nameAr,
         city: selectedCity.nameAr,
-        coordinates: selectedCity.coordinates,
+        coordinates: selectedCity.coordinates as [number, number],
       },
       rating,
-      hashtags: extractHashtags(caption),
     })
 
     // Reset form

@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils"
 import { CommentsSection } from "./comments-section"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { likePost as likePostApi, unlikePost as unlikePostApi } from "@/lib/api/posts"
+import Image from "next/image"
 
 interface PostCardProps {
   post: Post
@@ -106,7 +107,13 @@ export function PostCard({ post }: PostCardProps) {
 
       {/* Post Image */}
       <div className="relative">
-        <img src={post.image || "/placeholder.svg"} alt={post.caption} className="w-full aspect-square object-cover" />
+        <Image
+          src={post.image || "/placeholder.svg"}
+          alt={post.caption}
+          width={1200}
+          height={1200}
+          className="w-full aspect-square object-cover"
+        />
         {/* Rating Badge */}
         <div className="absolute top-3 left-3">
           <Badge className="bg-black/70 text-white border-0 gap-1">
